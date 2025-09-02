@@ -5,6 +5,26 @@ CREATE TABLE nation (
     code VARCHAR(3) -- ISO country code (e.g., 'ESP', 'FRA')
 );
 
+-- STADIUM (replaces field_dimensions and provides venue structure)
+CREATE TABLE stadium (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    capacity INT,
+    opened_year INT,
+    surface_type VARCHAR(50), -- 'Natural grass', 'Artificial turf', 'Hybrid'
+    length_m DECIMAL(6,2), -- field length in meters
+    width_m DECIMAL(6,2), -- field width in meters
+    coordinate_system VARCHAR(50), -- e.g., '0-100 normalized', 'meters from center'
+    origin_description TEXT, -- where (0,0) is located for tracking data
+    altitude_m INT, -- altitude above sea level
+    has_roof BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
+);
+
 -- COMPETITION
 CREATE TABLE competition (
     id SERIAL PRIMARY KEY,
@@ -364,26 +384,6 @@ CREATE TABLE action_document_staff (
     document_type VARCHAR(50), -- e.g., 'Match analysis', 'Player report'
     file_path TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- STADIUM (replaces field_dimensions and provides venue structure)
-CREATE TABLE stadium (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    city VARCHAR(100),
-    country VARCHAR(100),
-    capacity INT,
-    opened_year INT,
-    surface_type VARCHAR(50), -- 'Natural grass', 'Artificial turf', 'Hybrid'
-    length_m DECIMAL(6,2), -- field length in meters
-    width_m DECIMAL(6,2), -- field width in meters
-    coordinate_system VARCHAR(50), -- e.g., '0-100 normalized', 'meters from center'
-    origin_description TEXT, -- where (0,0) is located for tracking data
-    altitude_m INT, -- altitude above sea level
-    has_roof BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(100)
 );
 
 -- SUBSTITUTIONS (to track player substitutions properly)
