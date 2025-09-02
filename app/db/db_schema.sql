@@ -1,221 +1,203 @@
--- Merged Football Database Schema
--- Consolidated from 3 pieces with Team_Standing, Knockout, and generic Actions tables removed
-
--- Core Competition and Match tables
-CREATE TABLE Competition (
-    id BIGINT PRIMARY KEY,
-    year VARCHAR,
-    name VARCHAR,
-    level SMALLINT,
-    type VARCHAR,
-    location VARCHAR,
-    region BIGINT
+-- COMPETITION
+CREATE TABLE competition (
+    id SERIAL PRIMARY KEY
+    -- add fields like name, season, etc.
 );
 
-CREATE TABLE Match (
-    id BIGINT PRIMARY KEY,
-    round VARCHAR(7),
-    referee BIGINT,
-    stadium VARCHAR,
-    date DATE,
-    video VARCHAR,
-    matchday INT,
-    "group" SMALLINT,
-    competition_id BIGINT REFERENCES Competition(id)
+-- MATCH
+CREATE TABLE match (
+    id SERIAL PRIMARY KEY,
+    competition_id INT REFERENCES competition(id),
+    match_date DATE
 );
 
--- Core Team and Player tables
-CREATE TABLE Team (
-    id BIGINT PRIMARY KEY
+-- TEAM
+CREATE TABLE team (
+    id SERIAL PRIMARY KEY,
+    name TEXT
 );
 
-CREATE TABLE Player (
-    id BIGINT PRIMARY KEY
+-- TEAM_GAME (link: team <-> match)
+CREATE TABLE team_game (
+    id SERIAL PRIMARY KEY,
+    team_id INT NOT NULL REFERENCES team(id),
+    match_id INT NOT NULL REFERENCES match(id)
 );
 
--- Nationality and Staff management
-CREATE TABLE nationality (
-    id BIGINT PRIMARY KEY
+-- PLAYER
+CREATE TABLE player (
+    id SERIAL PRIMARY KEY,
+    team_id INT REFERENCES team(id)
+    -- add player details (name, dob, position...)
 );
 
-CREATE TABLE staff (
-    id BIGINT PRIMARY KEY,
-    nationality_id BIGINT REFERENCES nationality(id)
+-- ROLE (link: player <-> team_game)
+CREATE TABLE role (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    team_game_id INT NOT NULL REFERENCES team_game(id)
+    -- role fields: starter, captain, etc.
 );
 
-CREATE TABLE staff_team (
-    id BIGINT PRIMARY KEY,
-    year BIGINT,
-    type BIGINT
+-- TRACKING (link: player <-> team_game)
+CREATE TABLE tracking (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    team_game_id INT NOT NULL REFERENCES team_game(id)
+    -- add tracking metrics
 );
 
-CREATE TABLE staff_Game (
-    id BIGINT PRIMARY KEY,
-    staff_id BIGINT REFERENCES staff(id)
+-- BALL TRACKING (link: match)
+CREATE TABLE ball_tracking (
+    id SERIAL PRIMARY KEY,
+    match_id INT NOT NULL REFERENCES match(id)
+    -- ball tracking data fields
 );
 
--- Team Game participation
-CREATE TABLE Team_Game (
-    id BIGINT PRIMARY KEY,
-    match_id BIGINT REFERENCES Match(id),
-    team_id BIGINT REFERENCES Team(id),
-    is_host BOOLEAN,
-    points SMALLINT
+-- REFEREE
+CREATE TABLE referee (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
 );
 
--- Role and tactical information
-CREATE TABLE Role (
-    id BIGINT PRIMARY KEY,
-    position VARCHAR,
-    tactic VARCHAR,
-    start_timelight TIME,
-    end_time TIME,
-    time TIME,
-    x_average FLOAT,
-    y_average FLOAT,
-    team_id BIGINT REFERENCES Team(id)
+-- REFEREE_GAME (link: referee <-> match)
+CREATE TABLE referee_game (
+    id SERIAL PRIMARY KEY,
+    referee_id INT NOT NULL REFERENCES referee(id),
+    match_id INT NOT NULL REFERENCES match(id),
+    type VARCHAR(255)
 );
 
--- Action tracking tables
-CREATE TABLE Action_Video (
-    id BIGINT PRIMARY KEY,
-    team_game_id BIGINT REFERENCES Team_Game(id),
-    timestamp TIMESTAMP,
-    position_x FLOAT,
-    position_y FLOAT,
-    type VARCHAR,
-    minute INT,
-    half SMALLINT
+-- ACTION DOCUMENT / VIDEO (1 per game)
+CREATE TABLE action_document (
+    id SERIAL PRIMARY KEY,
+    team_game_id INT NOT NULL REFERENCES team_game(id),
+    file_path TEXT  -- or metadata
 );
 
-CREATE TABLE Action_Document (
-    id BIGINT PRIMARY KEY,
-    team_game_id BIGINT REFERENCES Team_Game(id),
-    type VARCHAR,
-    minute INT,
-    half SMALLINT
+CREATE TABLE action_video (
+    id SERIAL PRIMARY KEY,
+    team_game_id INT NOT NULL REFERENCES team_game(id),
+    file_path TEXT
 );
 
-CREATE TABLE Action_Document_S (
-    id BIGINT PRIMARY KEY,
-    type VARCHAR,
-    minute INT,
-    half SMALLINT
+-- ACTIONS (specialized tables)
+CREATE TABLE pass (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
+    -- add fields like pass_type, distance, outcome...
 );
 
--- Specific action types (from piece 1 - kept as requested)
-CREATE TABLE Pass (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
+CREATE TABLE duel (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
+    -- duel_type, won/lost, opponent_id...
 );
 
-CREATE TABLE Shot (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
+CREATE TABLE assist (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
+    -- assist_type...
 );
 
-CREATE TABLE Fault (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
+CREATE TABLE goal (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
+    -- goal_type, minute...
 );
 
-CREATE TABLE Interception (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
+CREATE TABLE card (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    card_type VARCHAR(20), -- yellow/red
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
 );
 
-CREATE TABLE Duel (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
+CREATE TABLE freekick (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id),
+    action_document_id INT REFERENCES action_document(id),
+    action_video_id INT REFERENCES action_video(id)
+    -- direct/indirect, outcome...
 );
 
-CREATE TABLE Clearance (
-    id BIGINT PRIMARY KEY,
-    action_id BIGINT REFERENCES Action_Video(id),
-    player_id BIGINT REFERENCES Player(id)
-);
-
--- Tracking and analytics
-CREATE TABLE Tracking (
-    id BIGINT PRIMARY KEY,
-    team_game_id BIGINT REFERENCES Team_Game(id),
-    new_column BIGINT
-);
-
-CREATE TABLE Ball_tracking (
-    id BIGINT PRIMARY KEY
-);
-
--- Medical and wellness management
-CREATE TABLE Bodypart (
-    id BIGINT PRIMARY KEY,
-    name VARCHAR
-);
-
-CREATE TABLE Lesiones (
-    id BIGINT PRIMARY KEY,
-    player_id BIGINT REFERENCES Player(id),
-    bodypart_id BIGINT REFERENCES Bodypart(id),
-    surface VARCHAR,
-    severity SMALLINT,
-    type VARCHAR,
-    date DATE,
-    return_date DATE,
-    expected_return_date DATE,
-    training_date DATE,
-    expected_training_date DATE,
-    treatment VARCHAR,
-    activity VARCHAR,
-    comments TEXT
-);
-
-CREATE TABLE wellness_satisfaction_tests (
-    id BIGINT PRIMARY KEY,
-    player_id BIGINT REFERENCES Player(id),
-    datetime DATE,
-    morale SMALLINT,
-    tiredness SMALLINT
-);
-
-CREATE TABLE Physical_tests (
-    id BIGINT PRIMARY KEY,
-    player_id BIGINT REFERENCES Player(id),
-    FOREIGN KEY (id) REFERENCES wellness_satisfaction_tests(id)
-);
-
--- Training management
+-- TRAINING + EXERCISES
 CREATE TABLE training (
-    id BIGINT PRIMARY KEY,
-    team_id BIGINT REFERENCES Team(id),
-    datetime DATE,
-    type VARCHAR,
-    location VARCHAR
+    id SERIAL PRIMARY KEY,
+    team_id INT NOT NULL REFERENCES team(id)
 );
 
 CREATE TABLE training_exercise (
-    id BIGINT PRIMARY KEY,
-    training_id BIGINT REFERENCES training(id),
-    exercise_id BIGINT, -- Note: Will need to reference specific action tables after you provide the action list
-    "order" INT,
-    type VARCHAR,
-    FOREIGN KEY (training_id) REFERENCES training(id)
+    id SERIAL PRIMARY KEY,
+    training_id INT NOT NULL REFERENCES training(id)
 );
 
--- Additional foreign key constraints for proper relationships
-ALTER TABLE staff_Game
-ADD COLUMN match_id BIGINT,
-ADD CONSTRAINT fk_staff_game_match
-FOREIGN KEY (match_id) REFERENCES Match(id);
+-- WELLNESS & SATISFACTION TESTS
+CREATE TABLE wellness_test (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id)
+);
 
-ALTER TABLE staff_team
-ADD COLUMN staff_id BIGINT,
-ADD COLUMN team_id BIGINT,
-ADD CONSTRAINT fk_staff_team_staff
-FOREIGN KEY (staff_id) REFERENCES staff(id),
-ADD CONSTRAINT fk_staff_team_team
-FOREIGN KEY (team_id) REFERENCES Team(id);
+CREATE TABLE satisfaction_test (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id)
+);
+
+-- PHYSICAL TEST
+CREATE TABLE physical_test (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id)
+);
+
+-- INJURY + BODYPART
+CREATE TABLE injury (
+    id SERIAL PRIMARY KEY,
+    player_id INT NOT NULL REFERENCES player(id)
+);
+
+CREATE TABLE bodypart (
+    id SERIAL PRIMARY KEY,
+    injury_id INT NOT NULL REFERENCES injury(id)
+);
+
+-- STAFF
+CREATE TABLE staff (
+    id SERIAL PRIMARY KEY
+);
+
+-- STAFF TEAM (link: staff <-> team)
+CREATE TABLE staff_team (
+    id SERIAL PRIMARY KEY,
+    staff_id INT NOT NULL REFERENCES staff(id),
+    team_id INT NOT NULL REFERENCES team(id)
+);
+
+-- STAFF GAME (link: staff <-> team_game)
+CREATE TABLE staff_game (
+    id SERIAL PRIMARY KEY,
+    staff_id INT NOT NULL REFERENCES staff(id),
+    team_game_id INT NOT NULL REFERENCES team_game(id)
+);
+
+-- ACTION DOCUMENT STAFF (link: staff <-> team_game)
+CREATE TABLE action_document_staff (
+    id SERIAL PRIMARY KEY,
+    staff_id INT NOT NULL REFERENCES staff(id),
+    team_game_id INT NOT NULL REFERENCES team_game(id)
+);
+
+-- NATION (link: player & staff)
+CREATE TABLE nation (
+    id SERIAL PRIMARY KEY,
+    staff_id INT REFERENCES staff(id),
+    player_id INT REFERENCES player(id)
+);
