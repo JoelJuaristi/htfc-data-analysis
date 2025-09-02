@@ -32,7 +32,13 @@ CREATE TABLE match (
     match_time TIME,
     venue VARCHAR(255),
     matchday INT, -- round/matchday number
-    status VARCHAR(20) -- 'scheduled', 'ongoing', 'finished', 'postponed'
+    status VARCHAR(20), -- 'scheduled', 'ongoing', 'finished', 'postponed'
+    attendance INT,
+    weather VARCHAR(50), -- 'Sunny', 'Rainy', 'Cloudy', 'Snow'
+    temperature_celsius INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
 );
 
 -- TEAM_GAME (link: team <-> match)
@@ -42,7 +48,18 @@ CREATE TABLE team_game (
     match_id INT NOT NULL REFERENCES match(id),
     is_home BOOLEAN, -- true if home team, false if away
     final_score INT, -- goals scored by this team
-    formation VARCHAR(20) -- e.g., '4-4-2', '3-5-2'
+    formation VARCHAR(20), -- e.g., '4-4-2', '3-5-2'
+    possession_percentage DECIMAL(5,2),
+    shots INT,
+    shots_on_target INT,
+    corners INT,
+    fouls INT,
+    yellow_cards INT,
+    red_cards INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    CONSTRAINT unique_team_match UNIQUE(team_id, match_id)
 );
 
 -- STAFF
@@ -68,7 +85,12 @@ CREATE TABLE player (
     weight_kg INT,
     preferred_foot VARCHAR(10), -- 'Left', 'Right', 'Both'
     contract_start DATE,
-    contract_end DATE
+    contract_end DATE,
+    market_value_euros BIGINT,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
 );
 
 -- ROLE (link: player <-> team_game)
@@ -81,7 +103,11 @@ CREATE TABLE role (
     is_vice_captain BOOLEAN,
     minutes_played INT,
     position_played VARCHAR(50), -- position in this specific game
-    jersey_number INT -- jersey number for this game (can change)
+    jersey_number INT, -- jersey number for this game (can change)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    CONSTRAINT unique_player_team_game UNIQUE(player_id, team_game_id)
 );
 
 -- TRACKING (link: player <-> team_game)
@@ -339,3 +365,67 @@ CREATE TABLE action_document_staff (
     file_path TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- FIELD DIMENSIONS (for coordinate system reference)
+CREATE TABLE field_dimensions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL, -- e.g., 'Standard FIFA', 'Camp Nou', 'Wembley'
+    length_m DECIMAL(6,2) NOT NULL, -- field length in meters
+    width_m DECIMAL(6,2) NOT NULL, -- field width in meters
+    coordinate_system VARCHAR(50), -- e.g., '0-100 normalized', 'meters from center'
+    origin_description TEXT, -- where (0,0) is located
+    is_default BOOLEAN DEFAULT false
+);
+
+-- SUBSTITUTIONS (to track player substitutions properly)
+CREATE TABLE substitution (
+    id SERIAL PRIMARY KEY,
+    match_id INT NOT NULL REFERENCES match(id),
+    team_game_id INT NOT NULL REFERENCES team_game(id),
+    player_out_id INT NOT NULL REFERENCES player(id),
+    player_in_id INT NOT NULL REFERENCES player(id),
+    minute INT NOT NULL,
+    reason VARCHAR(50), -- e.g., 'Tactical', 'Injury', 'Disciplinary'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
+);
+
+-- ESSENTIAL INDEXES FOR PERFORMANCE
+CREATE INDEX idx_match_date ON match(match_date);
+CREATE INDEX idx_match_competition ON match(competition_id);
+CREATE INDEX idx_player_team ON player(team_id);
+CREATE INDEX idx_player_nation ON player(nation_id);
+CREATE INDEX idx_team_game_match ON team_game(match_id);
+CREATE INDEX idx_team_game_team ON team_game(team_id);
+CREATE INDEX idx_role_player ON role(player_id);
+CREATE INDEX idx_role_team_game ON role(team_game_id);
+CREATE INDEX idx_tracking_player ON tracking(player_id);
+CREATE INDEX idx_tracking_team_game ON tracking(team_game_id);
+
+-- Action table indexes
+CREATE INDEX idx_pass_player ON pass(player_id);
+CREATE INDEX idx_pass_minute ON pass(match_minute);
+CREATE INDEX idx_goal_player ON goal(player_id);
+CREATE INDEX idx_goal_minute ON goal(match_minute);
+CREATE INDEX idx_assist_player ON assist(player_id);
+CREATE INDEX idx_duel_player ON duel(player_id);
+CREATE INDEX idx_card_player ON card(player_id);
+CREATE INDEX idx_freekick_player ON freekick(player_id);
+
+-- Staff and referee indexes
+CREATE INDEX idx_staff_nation ON staff(nation_id);
+CREATE INDEX idx_referee_nation ON referee(nation_id);
+CREATE INDEX idx_staff_team_staff ON staff_team(staff_id);
+CREATE INDEX idx_staff_team_team ON staff_team(team_id);
+CREATE INDEX idx_referee_game_match ON referee_game(match_id);
+
+-- Training and test indexes
+CREATE INDEX idx_training_team ON training(team_id);
+CREATE INDEX idx_training_date ON training(training_date);
+CREATE INDEX idx_wellness_test_player ON wellness_test(player_id);
+CREATE INDEX idx_wellness_test_date ON wellness_test(test_date);
+CREATE INDEX idx_satisfaction_test_player ON satisfaction_test(player_id);
+CREATE INDEX idx_physical_test_player ON physical_test(player_id);
+CREATE INDEX idx_injury_player ON injury(player_id);
+CREATE INDEX idx_injury_date ON injury(injury_date);
