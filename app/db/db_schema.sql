@@ -21,16 +21,16 @@ CREATE TABLE team (
     short_name VARCHAR(50),
     founded_year INT,
     city VARCHAR(100),
-    stadium VARCHAR(255)
+    home_stadium_id INT REFERENCES stadium(id) -- team's home stadium
 );
 
 -- MATCH
 CREATE TABLE match (
     id SERIAL PRIMARY KEY,
     competition_id INT REFERENCES competition(id),
+    stadium_id INT REFERENCES stadium(id),
     match_date DATE NOT NULL,
     match_time TIME,
-    venue VARCHAR(255),
     matchday INT, -- round/matchday number
     status VARCHAR(20), -- 'scheduled', 'ongoing', 'finished', 'postponed'
     attendance INT,
@@ -366,15 +366,24 @@ CREATE TABLE action_document_staff (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- FIELD DIMENSIONS (for coordinate system reference)
-CREATE TABLE field_dimensions (
+-- STADIUM (replaces field_dimensions and provides venue structure)
+CREATE TABLE stadium (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL, -- e.g., 'Standard FIFA', 'Camp Nou', 'Wembley'
-    length_m DECIMAL(6,2) NOT NULL, -- field length in meters
-    width_m DECIMAL(6,2) NOT NULL, -- field width in meters
+    name VARCHAR(255) NOT NULL,
+    city VARCHAR(100),
+    country VARCHAR(100),
+    capacity INT,
+    opened_year INT,
+    surface_type VARCHAR(50), -- 'Natural grass', 'Artificial turf', 'Hybrid'
+    length_m DECIMAL(6,2), -- field length in meters
+    width_m DECIMAL(6,2), -- field width in meters
     coordinate_system VARCHAR(50), -- e.g., '0-100 normalized', 'meters from center'
-    origin_description TEXT, -- where (0,0) is located
-    is_default BOOLEAN DEFAULT false
+    origin_description TEXT, -- where (0,0) is located for tracking data
+    altitude_m INT, -- altitude above sea level
+    has_roof BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100)
 );
 
 -- SUBSTITUTIONS (to track player substitutions properly)
@@ -393,7 +402,8 @@ CREATE TABLE substitution (
 
 -- ESSENTIAL INDEXES FOR PERFORMANCE
 CREATE INDEX idx_match_date ON match(match_date);
-CREATE INDEX idx_match_competition ON match(competition_id);
+CREATE INDEX idx_match_stadium ON match(stadium_id);
+CREATE INDEX idx_team_home_stadium ON team(home_stadium_id);
 CREATE INDEX idx_player_team ON player(team_id);
 CREATE INDEX idx_player_nation ON player(nation_id);
 CREATE INDEX idx_team_game_match ON team_game(match_id);
