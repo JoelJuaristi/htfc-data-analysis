@@ -23,4 +23,4 @@ jobs:
           image: ghcr.io/${{ github.repository }}/app
           tag: latest
           path: ./app
-          build_file: ./app/db/Dockerfile
+          build_file: db/Dockerfile
