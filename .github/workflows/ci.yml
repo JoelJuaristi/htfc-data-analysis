@@ -25,5 +25,6 @@ jobs:
           username: ${{ github.actor }}    # for GHCR, username is usually your GitHub username
           password: ${{ secrets.GITHUB_TOKEN }}
           tag: latest
+          image: db
           path: ./app
           build_file: db/Dockerfile
