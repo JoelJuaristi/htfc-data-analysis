@@ -1,64 +1,29 @@
+# .github/workflows/ci.yml
 name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main"]
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  build-db:
+  build-docker:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Check if db files changed
-        id: check_db
-        run: |
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "app/db/"; then
-            echo "db_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "db_changed=false" >> $GITHUB_OUTPUT
-          fi
+
       - name: Build and push Docker image with Kaniko
-        if: steps.check_db.outputs.db_changed == 'true'
         uses: aevea/action-kaniko@v0.11.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}    
+          registry: ghcr.io                # or docker.io, ecr, gcr, etc.
+          username: ${{ github.actor }}    # for GHCR, username is usually your GitHub username
           password: ${{ secrets.GITHUB_TOKEN }}
           tag: latest
           image: db
-          path: ./app/db
-          build_file: app/db/Dockerfile
-
-  build-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Check if backend files changed
-        id: check_backend
-        run: |
-          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "app/backend/"; then
-            echo "backend_changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "backend_changed=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Build and push Docker image with Kaniko
-        if: steps.check_backend.outputs.backend_changed == 'true'
-        uses: aevea/action-kaniko@v0.11.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}    
-          password: ${{ secrets.GITHUB_TOKEN }}
-          tag: latest
-          image: backend
-          path: ./app/backend
-          build_file: app/backend/Dockerfile
+          path: ./app
+          build_file: db/Dockerfile
