@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   pull_request:
-    branches: [ "main"]
+    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -11,15 +11,21 @@ permissions:
 jobs:
   build-db:
     runs-on: ubuntu-latest
-    # Only run if changes are in app/db/ or the workflow file itself
-    if: |
-      github.event_name == 'pull_request' && 
-      (contains(github.event.pull_request.files.*.filename, 'app/db/') || 
-       contains(github.event.pull_request.files.*.filename, '.github/workflows/ci.yml'))
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if db files changed
+        id: check_db
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "app/db/"; then
+            echo "db_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "db_changed=false" >> $GITHUB_OUTPUT
+          fi
       - name: Build and push Docker image with Kaniko
+        if: steps.check_db.outputs.db_changed == 'true'
         uses: aevea/action-kaniko@v0.11.0
         with:
           registry: ghcr.io
@@ -32,15 +38,21 @@ jobs:
 
   build-backend:
     runs-on: ubuntu-latest
-    # Only run if changes are in app/backend/ or the workflow file itself
-    if: |
-      github.event_name == 'pull_request' && 
-      (contains(github.event.pull_request.files.*.filename, 'app/backend/') || 
-       contains(github.event.pull_request.files.*.filename, '.github/workflows/ci.yml'))
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check if backend files changed
+        id: check_backend
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -q "app/backend/"; then
+            echo "backend_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend_changed=false" >> $GITHUB_OUTPUT
+          fi
       - name: Build and push Docker image with Kaniko
+        if: steps.check_backend.outputs.backend_changed == 'true'
         uses: aevea/action-kaniko@v0.11.0
         with:
           registry: ghcr.io
