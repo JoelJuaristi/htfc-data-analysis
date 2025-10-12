@@ -1,0 +1,30 @@
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "feat-scheema-definition" ]
+  pull_request:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build and push Docker image with Kaniko
+        uses: aevea/action-kaniko@v0.11.0
+        with:
+          registry: ghcr.io                # or docker.io, ecr, gcr, etc.
+          username: ${{ github.actor }}    # for GHCR, username is usually your GitHub username
+          password: ${{ secrets.GITHUB_TOKEN }}
+          tag: latest
+          image: db
+          path: ./app
+          build_file: db/Dockerfile
