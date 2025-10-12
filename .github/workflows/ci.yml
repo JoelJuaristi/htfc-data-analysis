@@ -1,30 +1,52 @@
-# .github/workflows/ci.yml
 name: CI Pipeline
 
 on:
-  push:
-    branches: [ "feat-scheema-definition" ]
   pull_request:
+    branches: [ "main"]
 
 permissions:
   contents: read
   packages: write
 
 jobs:
-  build-docker:
+  build-db:
     runs-on: ubuntu-latest
-
+    # Only run if changes are in app/db/ or the workflow file itself
+    if: |
+      github.event_name == 'pull_request' && 
+      (contains(github.event.pull_request.files.*.filename, 'app/db/') || 
+       contains(github.event.pull_request.files.*.filename, '.github/workflows/ci.yml'))
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Build and push Docker image with Kaniko
         uses: aevea/action-kaniko@v0.11.0
         with:
-          registry: ghcr.io                # or docker.io, ecr, gcr, etc.
-          username: ${{ github.actor }}    # for GHCR, username is usually your GitHub username
+          registry: ghcr.io
+          username: ${{ github.actor }}    
           password: ${{ secrets.GITHUB_TOKEN }}
           tag: latest
           image: db
-          path: ./app
-          build_file: db/Dockerfile
+          path: ./app/db
+          build_file: app/db/Dockerfile
+
+  build-backend:
+    runs-on: ubuntu-latest
+    # Only run if changes are in app/backend/ or the workflow file itself
+    if: |
+      github.event_name == 'pull_request' && 
+      (contains(github.event.pull_request.files.*.filename, 'app/backend/') || 
+       contains(github.event.pull_request.files.*.filename, '.github/workflows/ci.yml'))
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build and push Docker image with Kaniko
+        uses: aevea/action-kaniko@v0.11.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}    
+          password: ${{ secrets.GITHUB_TOKEN }}
+          tag: latest
+          image: backend
+          path: ./app/backend
+          build_file: app/backend/Dockerfile
