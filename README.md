@@ -29,8 +29,6 @@ This repository is organized to support easy development and deployment of the a
 You can quickly spin up the database locally using Docker.
 
 ```
-cd ./app/db/
-docker build -t db .
 docker run --name htfc-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 ghcr.io/joeljuaristi/htfc-data-analysis/db:latest
 ```
 
