@@ -23,8 +23,7 @@ jobs:
           registry: ghcr.io                # or docker.io, ecr, gcr, etc.
           username: ${{ github.actor }}    # for GHCR, username is usually your GitHub username
           password: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.sha }}
-          tag_with_latest: true
+          tag: latest
           image: db
           path: ./app
           build_file: db/Dockerfile
