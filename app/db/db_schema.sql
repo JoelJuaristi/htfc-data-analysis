@@ -50,7 +50,7 @@ CREATE TABLE "Match" (
 	"attendance" INTEGER,
 	"weather" VARCHAR(50),
 	"temperature_celsius" INTEGER,
-	"video_URL" TEXT,
+	"video_url" TEXT,
 	"created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	"updated_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	"created_by" VARCHAR(100),
